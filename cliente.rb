@@ -50,7 +50,12 @@ def broadcast()
 				puts "From addr: '%s', msg: '%s'" % [addr[3], data]
 				puts $servers
 				$servers.sort
-				u2.send('client|'+myip,0,addr[3],port)
+				u1 = UDPSocket.new
+				u1.connect(addr[3],9122)
+				data = 'client|'+myip
+				u1.send data, 0
+				u1.close
+				#u2.send('client|'+myip,0,addr[3],port)
 				#broadcast_wakeup
 			end
 		}

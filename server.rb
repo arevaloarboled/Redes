@@ -49,8 +49,8 @@ def broadcast()
 				$clients.push(tmp[1])
 				puts "From addr: '%s', msg: '%s'" % [addr[3], data]
 				puts $clients
-				u2.send('server|'+myip,0,addr[3],port)
-				#broadcast_wakeup
+				#u2.send('server|'+myip,0,addr[3],port)
+				broadcast_wakeup
 			end
 		}
 		u2.close
