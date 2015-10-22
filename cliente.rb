@@ -27,33 +27,35 @@ def broadcast_wakeup()
 	#addr = ['127.0.0.255', 33333] # ??
 	u1 = UDPSocket.new
 	u1.setsockopt(Socket::SOL_SOCKET, Socket::SO_BROADCAST, true)
-	data = 'server '+myip
+	data = 'client|'+myip
 	u1.send(data, 0, addr[0], addr[1])
 	u1.close
 end
 
 def broadcast()
+	broadcast_wakeup
 	ts=Thread.new do
 		port=9122
 		addr = [myip, port]  # host, port
-		BasicSocket.do_not_reverse_lookup = true
+		##BasicSocket.do_not_reverse_lookup = true
 		# Create socket and bind to address
 		u2 = UDPSocket.new
+		u2.setsockopt(Socket::SOL_SOCKET, Socket::SO_BROADCAST, true)
 		u2.bind(addr[0], addr[1])
 		loop{
 			data, addr = u2.recvfrom(1024) # if this number is too low it will drop the larger packets and never give them to you #=> ["uuuu", ["AF_INET", 33230, "localhost", "127.0.0.1"]]
-			if !$servers.include?(addr[3]) and data!='client'
-				tmp=data.split(" ")
+			tmp=data.split("|")
+			if !$servers.include?(addr[3]) and tmp[0]!='client'
 				$servers.push(tmp[1])
 				puts "From addr: '%s', msg: '%s'" % [addr[3], data]
 				puts $servers
 				$servers.sort
-				u2.send('cleint '+myip,0,addr[3],port)
+				u2.send('client|'+myip,0,addr[3],port)
+				#broadcast_wakeup
 			end
 		}
 		u2.close
 	end
-	broadcast_wakeup
 	ts.join		
 	#output='nmap '+pp+'* -p 9122'
 	#print "#{output}"
@@ -64,8 +66,8 @@ def client
 		begin
 			if !$servers.empty?
 				s = TCPSocket.open($servers[0], 9123)
-				c1.Thread.new{client_recv(s)}
-				c2.Thread.new{client_send(s)}
+				c1=Thread.new{client_recv(s)}
+				c2=Thread.new{client_send(s)}
 			end
 		rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH
 			$servers.delete_at(0)
@@ -84,7 +86,8 @@ end
 
 def client_send(s)
 	loop{
-		msg=$stdin.gets.chomp
+		puts "hola"
+		msg=gets
 		s.puts(msg)
 	}
 	s.close
@@ -110,8 +113,8 @@ $iplocal=myip
 ip=pp
 puts ip
 t1=Thread.new{broadcast}
-t2.Thread.new{client}
-t3.Thread.new{connection}
+t2=Thread.new{client}
+t3=Thread.new{connection}
 #t1.join
 loop{
 	if myip==$iplocal
