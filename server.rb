@@ -49,8 +49,13 @@ def broadcast()
 				$clients.push(tmp[1])
 				puts "From addr: '%s', msg: '%s'" % [addr[3], data]
 				puts $clients
+				u1 = UDPSocket.new
+				#u1.connect(addr[3],9122)
+				data = 'server|'+myip
+				u1.send data,0,addr[3],9122
+				u1.close
 				#u2.send('server|'+myip,0,addr[3],port)
-				broadcast_wakeup
+				#broadcast_wakeup
 			end
 		}
 		u2.close

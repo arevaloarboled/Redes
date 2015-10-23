@@ -51,9 +51,9 @@ def broadcast()
 				puts $servers
 				$servers.sort
 				u1 = UDPSocket.new
-				u1.connect(addr[3],9122)
+				#u1.connect(addr[3],9122)
 				data = 'client|'+myip
-				u1.send data, 0
+				u1.send data,0,addr[3],9122
 				u1.close
 				#u2.send('client|'+myip,0,addr[3],port)
 				#broadcast_wakeup
@@ -70,14 +70,17 @@ def client
 	loop{
 		begin
 			if !$servers.empty?
+				puts "miow"
 				s = TCPSocket.open($servers[0], 9123)
 				c1=Thread.new{client_recv(s)}
 				c2=Thread.new{client_send(s)}
+				c1.join
 			end
 		rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH
 			$servers.delete_at(0)
 		end
 	}
+	puts "safsafsd"
 end
 
 def client_recv(s)
@@ -95,6 +98,7 @@ def client_send(s)
 		msg=gets
 		s.puts(msg)
 	}
+	puts "sfa"
 	s.close
 end
 
