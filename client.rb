@@ -6,7 +6,43 @@ require 'socket'
 require 'thread'
 
 #........................................#
-$servers=["192.168.250.38"]
+$servers=["localhost"]
+
+def recibe(msg)
+  k=0
+  loop do
+    begin
+      server = TCPSocket.open( $servers[0], 9123 )
+      server.puts(msg)
+      msg=server.gets.chomp
+      server.close
+      break
+    rescue Exception 
+      k=k+1
+      if k==$servers.count() then
+        k=0
+      end
+    end
+  end
+  return msg
+end
+
+def envia(msg)
+  k=0
+  loop do
+    begin
+      server = TCPSocket.open( $servers[0], 9123 )
+      server.puts(msg)
+      server.close
+      break
+    rescue Exception 
+      k=k+1
+      if k==$servers.count() then
+        k=0
+      end
+    end
+  end
+end
 
 class GameWindow < Gosu::Window
 
@@ -21,16 +57,13 @@ class GameWindow < Gosu::Window
 
   def setup_game
     begin
-      server = TCPSocket.open( $servers[0], 9123 )
-      server.puts("hola")
-      puts "lollol"
-      server.close
+      envia("hola")
     rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH
       puts "error en la conexion..."
     end
     puts "lol"
-    @player = Player.new
-    @player.warp(500, 350)
+    #@player = Player.new
+    #@player.warp(500, 350)
     @game_in_progress = true
     @menu_principal = false
     @level = 1 #Nivel dificultad del juego
@@ -57,31 +90,25 @@ class GameWindow < Gosu::Window
       @game_in_progress = false
     end
 
-    if @player #si existe jugador permite moverlo
-      # if Gosu::button_down? Gosu::KbSpace then
-      #   if @cooldown < 25 #es el cooldown para que se pueda disparar, solo se puede cuando @cooldown > 25
-      #   else
-      #     @projectiles << Projectile.new(@player)
-      #     @cooldown = 0
-      #   end
-      # end
-
+    if @game_in_progress #si existe jugador permite moverlo
+      if Gosu::button_down? Gosu::KbSpace then
+        #if @cooldown < 25 #es el cooldown para que se pueda disparar, solo se puede cuando @cooldown > 25
+        #else
+        #  @projectiles << Projectile.new(@player)
+        #  @cooldown = 0
+        #end
+        envia("space")
+      end
       if Gosu::button_down? Gosu::KbLeft or Gosu::button_down? Gosu::GpLeft then
-        server = TCPSocket.open( $servers[0], 9123 )
-        server.puts("left")
-        server.close
+        envia("left")
         #@player.turn_left
       end
       if Gosu::button_down? Gosu::KbRight or Gosu::button_down? Gosu::GpRight then
-        server = TCPSocket.open( $servers[0], 9123 )
-        server.puts("right")
-        server.close
+        envia("right")
         #@player.turn_right
       end
       if Gosu::button_down? Gosu::KbUp or Gosu::button_down? Gosu::GpUp then
-        server = TCPSocket.open( $servers[0], 9123 )
-        server.puts("up")
-        server.close
+        envia("up")
         #@player.accelerate
       end
       ################--->>>
@@ -105,7 +132,7 @@ class GameWindow < Gosu::Window
       @font.draw("Presiona 'q' Para Salir", 305, 345, 50, 1, 1, Gosu::Color::rgb(13, 123, 255))
     end
 
-    if @player #Si existe jugador lo dibuja
+    #if @player #Si existe jugador lo dibuja
 
       # if @player.lives <= 0
       #   unless @menu_principal
@@ -116,16 +143,35 @@ class GameWindow < Gosu::Window
       # end
 
       #unless @player.lives <= 0 #Para que cuando muera no muestre mas en la pantalla
-        server = TCPSocket.open( $servers[0], 9123 )
-        server.puts("update")
-        msg=server.gets.chomp
-        server.close
+      if @game_in_progress
+        msg=recibe("update")
+        #puts msg
         l=msg.split('|')
-        @player.x=l[1].to_f
-        @player.y=l[2].to_f
-        @player.angle=l[3].to_f
+        i=0
+        while i<l.count() do
+          if l[i]=="pl"
+            Gosu::Image.new("assets/nave"+(l[i+1].ord-47).to_s+".png").draw_rot(l[i+2].to_f,l[i+3].to_f,1,l[i+4].to_f)
+            i=i+5
+            next
+          end
+          if l[i]=="as"
+            Gosu::Image.new("assets/Large_Asteroid.png").draw_rot(l[i+1].to_f,l[i+2].to_f,1,l[i+3].to_f)       
+            i=i+4
+            next
+          end
+          if l[i]=="pr"
+            Gosu::Image.new("assets/projectile"+(l[i+1].ord-47).to_s+".png").draw_rot(l[i+2].to_f,l[i+3].to_f,1,l[i+4].to_f)       
+            i=i+5        
+            next
+          end
+          i=i+1
+        end
+      end
+        # @player.x=l[1].to_f
+        # @player.y=l[2].to_f
+        # @player.angle=l[3].to_f
         #puts @player.x
-        @player.draw #unless @player.lives <= 0
+        #@player.draw #unless @player.lives <= 0
         #@projectiles.each {|projectile| projectile.draw}
         #@asteroids.each {|asteroid| asteroid.draw} #Dibuja todos los asteroides
 
@@ -137,34 +183,8 @@ class GameWindow < Gosu::Window
     		#@font.draw(@level, 970, 10, 50, 1.0, 1.0, Gosu::Color::rgb(247, 226, 106))
       #end
 
-    end
+    #end
   end
-  #--------------------------------------#
-  def colision?(obj1, obj2) #deteccion de colisiones entre dos objetos
-    hitbox_1, hitbox_2 = obj1.hitbox, obj2.hitbox
-    common_x = hitbox_1[:x] & hitbox_2[:x]
-    common_y = hitbox_1[:y] & hitbox_2[:y]
-    common_x.size > 0 && common_y.size > 0
-  end
-  #--------------------------------------#
-  def deteccion_colisiones
-    @asteroids.each do |asteroid|
-      if colision?(asteroid, @player)
-      	@player.kill
-      end
-    end
-    ################--->>>
-    @projectiles.each do |projectile|
-      @asteroids.each do |asteroid|
-        if colision?(projectile, asteroid)
-          projectile.kill
-          @player.score += 20
-          #@asteroids += asteroid.kill
-        end
-      end
-    end
-  end
-  #--------------------------------------#
 end
 #........................................#
 window = GameWindow.new()

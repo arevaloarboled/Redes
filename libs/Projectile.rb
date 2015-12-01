@@ -1,6 +1,8 @@
 class Projectile
+  attr_accessor :x, :y, :angle, :alive, :id
   #--------------------------------------#
   def initialize(origin_object)
+    @id=origin_object.id
     @alive = true
     @x, @y = origin_object.x, origin_object.y
     @angle = origin_object.angle

@@ -1,10 +1,12 @@
 include Math
 
 class Asteroid
+  attr_accessor :x, :y, :angle, :alive
   #--------------------------------------#
-  def initialize
+  def initialize(size)
+    @size = size
     @alive = true
-    @image = Gosu::Image.new("assets/Large_Asteroid.png")
+    @image = Gosu::Image.new("assets/Asteroid-#{size}.png")
     @x, @y, @angle = rand(1000), rand(350), rand(360)
     @speed_modifier = 1
   end
@@ -26,12 +28,31 @@ class Asteroid
     self
   end
   #--------------------------------------#
+  def smash
+    asteroids = case @size
+    when 'Large'
+        speed = 2
+        2.times.collect{Asteroid.new('Medium')}
+      when 'Medium'
+        speed = 2.5
+        2.times.collect{Asteroid.new('Small')}
+      else
+        []
+      end
+    asteroids.collect {|asteroid| asteroid.setup(@x, @y, rand(0)*speed+0.3) }
+  end
+  #--------------------------------------#
   def self.spawn(count)
-    count.times.collect{Asteroid.new}
+    count.times.collect{Asteroid.new('Large')}
   end
   #--------------------------------------#
   def kill
     @alive = false
+    smash
+  end
+  #--------------------------------------#
+  def dead?
+    !@alive
   end
   #--------------------------------------#
   def hitbox
@@ -40,4 +61,18 @@ class Asteroid
     {:x => hitbox_x, :y => hitbox_y}
   end
   #--------------------------------------#
+  def points
+    case @size
+    when 'Large'
+      20
+    when 'Medium'
+      50
+    when 'Small'
+      100
+    else
+      0
+    end
+  end
+  #--------------------------------------#
+
 end

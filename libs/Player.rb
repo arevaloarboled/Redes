@@ -1,7 +1,8 @@
 class Player
-  attr_accessor :x, :y, :angle, :score, :lives
+  attr_accessor :x, :y, :angle, :score, :lives, :id
   #--------------------------------------#
-  def initialize
+  def initialize(id)
+    @id=id
     @image = Gosu::Image.new("assets/nave1.png")
     @x = @y = @vel_x = @vel_y = @angle = 0.0
     @alive = true
@@ -27,13 +28,13 @@ class Player
   end
   #--------------------------------------#
   def move
-    @x += @vel_x*1.1
-    @y += @vel_y*1.1
+    @x += @vel_x
+    @y += @vel_y
     @x %= 1000
     @y %= 700
 
-    @vel_x *= 0.99
-    @vel_y *= 0.99
+    @vel_x *= 0.95
+    @vel_y *= 0.95
   end
   #--------------------------------------#
   def draw

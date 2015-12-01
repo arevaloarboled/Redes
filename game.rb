@@ -4,7 +4,6 @@ require './libs/Projectile.rb'
 require './libs/Asteroid.rb'
 
 #........................................#
-
 class GameWindow < Gosu::Window
 
   def initialize
@@ -69,7 +68,9 @@ class GameWindow < Gosu::Window
       @projectiles.reject!{|projectile| projectile.dead?} #no elimina todos los proyectiles que dead? = false
 
       @asteroids.each {|asteroid| asteroid.move}
+      @asteroids.reject!{|asteroid| asteroid.dead?}
       deteccion_colisiones
+      level_up if @asteroids.size == 0 
       ################--->>>
     end
 
@@ -127,12 +128,18 @@ class GameWindow < Gosu::Window
       @asteroids.each do |asteroid|
         if colision?(projectile, asteroid)
           projectile.kill
-          @player.score += 20
-          #@asteroids += asteroid.kill
+          @player.score += asteroid.points
+          @asteroids += asteroid.kill
         end
       end
     end
   end
+  #--------------------------------------#
+  def level_up
+		@asteroid_count += 1
+		@level += 1
+		@asteroids = Asteroid.spawn(@asteroid_count)
+	end
   #--------------------------------------#
 end
 #........................................#
