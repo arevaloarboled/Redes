@@ -6,21 +6,25 @@ require 'socket'
 require 'thread'
 require 'timeout'
 #........................................#
-$servers=["192.168.0.21","192.168.0.19"]
+$servers=["192.168.250.39","192.168.250.40"]
 def recibe(msg)
   k=0
   tmp=msg
   loop do
     msg=tmp
     begin
-      server = TCPSocket.open( $servers[k], 9123 )
-      server.puts(msg)
-      msg=server.gets.chomp
-      server.close
-      break
-    rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+      Timeout.timeout(1) do
+        server = TCPSocket.open( $servers[k], 9123 )
+        server.puts(msg)
+        msg=server.gets.chomp
+        server.close
+        break
+      end
+    rescue Timeout::Error,Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
       puts "change"
-      puts e
+      if e then 
+        puts e
+      end
       #server.close
       k=k+1
       if k==$servers.count() then
@@ -35,11 +39,13 @@ def envia(msg)
   k=0
   loop do
     begin
-      server = TCPSocket.open( $servers[k], 9123 )
-      server.puts(msg)
-      server.close
-      break
-    rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+      Timeout.timeout(1) do
+        server = TCPSocket.open( $servers[k], 9123 )
+        server.puts(msg)
+        server.close
+        break
+      end
+    rescue Timeout::Error,Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
       #server.close
       puts "change"
       puts e

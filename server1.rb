@@ -17,7 +17,7 @@ def myip
   end
 end
 $IP=myip()
-$socket = TCPServer.open("192.168.250.40",9123)
+$socket = TCPServer.open("192.168.250.39",9123)
 #$socket_ali = TCPServer.open("localhost",9123)
 $servers=["192.168.250.39","192.168.250.40"]
 $dirbroadcast="192.168.250.255"
