@@ -5,6 +5,7 @@ require './libs/Asteroid.rb'
 #require './libs/socket.rb'
 require 'thread'
 require 'socket'
+require 'timeout'
 
 
 def myip
@@ -16,9 +17,10 @@ def myip
   end
 end
 
-$socket = TCPServer.open("localhost",9123)
+$socket = TCPServer.open("192.168.0.19",9123)
+#$socket_ali = TCPServer.open("localhost",9123)
+$servers=["192.168.0.21","192.168.0.19"]
 $clients=[]
-$servers=["localhost"]
 $players=[]
 $projectiles=[]
 $asteroids=[]
@@ -26,7 +28,7 @@ $cooldown=[]
 $asteriod_count=3
 $level=1
 $c=0
-$asteroids.push(Asteroid.new('Large'))
+$asteroids=Asteroid.spawn($asteriod_count)
 #$server=Thread.new do 
 #........................................#
 
@@ -53,7 +55,7 @@ def deteccion_colisiones
         if colision?(asteroid,player) then
           $players[projectile.id]+=asteroid.points
           projectile.kill
-          asteroid.kill
+          $asteroids+=asteroid.kill
         end
       end
     end
@@ -74,7 +76,7 @@ t=Time.now
 tread=Thread.new do
   k=0
   loop do
-    if k==6000 then
+    if k==65000 then
       #puts "se lanzo"
       begin
         i=0
@@ -97,8 +99,11 @@ tread=Thread.new do
           i=i+1
         end 
         i=0
-        while i < $asteroids.count() 
+        while i < $asteroids.count()
           $asteroids[i].move()
+          if $asteroids[i].alive==false then
+            $asteroids.delete_at(i)
+          end 
           i=i+1
         end
       rescue Exception => e
@@ -113,6 +118,73 @@ tread=Thread.new do
       # $asteroids.each {|asteroid| asteroid.move}
       deteccion_colisiones
       #puts "hola"
+      i=0
+      loop do
+        begin
+          if $servers[i]!=myip
+            server = TCPSocket.open( $servers[i], 9123 )
+            server.puts("update")
+            $clients=[]
+            $players=[]
+            $projectiles=[]
+            $asteroids=[]
+            $cooldown=[]
+            $asteriod_count=3
+            $level=1
+            $c=0
+            $asteroids
+            msg=server.gets.chomp
+            l=msg.split("|")
+            i=0
+            while i<l.count 
+              if l[i]=="cl"
+                $clients.push(l[i+1])
+                $players.push(Player.new($c))
+                $c+=1
+                $players[$players.count()-1].x=l[i+2].to_f
+                $players[$players.count()-1].y=l[i+3].to_f
+                $players[$players.count()-1].angle=l[i+4].to_f
+                $cooldown.push(0)
+                #$players[$players.count()-1].x=l[i+1].to_f
+                i=i+5
+                next
+              end
+              if l[i]=="asn"
+                $asteriod_count=l[i+1].to_d
+                i=i+2
+                next
+              end
+              if l[i]=="as"
+                $asteroids.push(Asteroids.new(l[i+1]))
+                $asteroids[$asteroids.count()-1].x=l[i+2].to_f
+                $asteroids[$asteroids.count()-1].y=l[i+3].to_f
+                $asteroids[$asteroids.count()-1].angle=l[i+4].to_f
+                i=i+5
+                next
+              end
+              if l[i]=="pr"
+                $projectiles.push(Projectile.new(l[i+1].to_f))                
+                $projectiles[$projectiles.count()-1].x=l[i+2].to_f
+                $projectiles[$projectiles.count()-1].y=l[i+3].to_f
+                $projectiles[$projectiles.count()-1].angle=l[i+4].to_f
+                i=i+5
+                next
+              end
+              i=i+1
+            end
+            server.close
+            break
+          elsif $servers[i]==myip
+            break             
+          end
+        rescue Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+          server.close
+          i+=1
+          if i==$servers.count then
+            i=0
+          end
+        end
+      end
       k=0
     end
     k=k+1
@@ -120,6 +192,7 @@ tread=Thread.new do
 end
 loop do
   Thread.start($socket.accept) do |client|
+    begin
       #puts "me llego :3"
       msg=client.gets.chomp
       sock_domain, remote_port, remote_hostname, remote_ip = client.peeraddr
@@ -169,14 +242,48 @@ loop do
               if $cooldown[$clients.index(remote_ip)] >= 25 then
                 $projectiles.push(Projectile.new($players[$clients.index(remote_ip)]))
                 $cooldown[$clients.index(remote_ip)]=0
-                puts $projectiles.count()
+                #puts $projectiles.count()
               end
              end
          end           
       end
       if $servers.include?(remote_ip) then
-        
+        if msg=="update"
+          msg=""
+          i=0
+          while i<$clients
+            msg+="cl|"
+            msg+=$clients[i]+"|"
+            msg+=$players[i].x.to_s+"|"
+            msg+=$players[i].y.to_s+"|"
+            msg+=$players[i].angle.to_s+"|"
+            i+=1
+          end
+          i=0
+          while i<$clients
+            msg+="cl|"
+            msg+=$clients[i]+"|"
+            msg+=$players[i].x.to_s+"|"
+            msg+=$players[i].y.to_s+"|"
+            msg+=$players[i].angle.to_s+"|"
+            i+=1
+          end
+          msg+="asn|"+$asteroid_count.to_s+"|"
+          i=0
+          while i<$projectiles
+            msg+="cl|"
+            msg+=$proyectiles[i].id.to_s+"|"
+            msg+=$proyectiles[i].x.to_s+"|"
+            msg+=$proyectiles[i].y.to_s+"|"
+            msg+=$proyectiles[i].angle.to_s+"|"
+            i+=1
+          end
+          client.puts(msg)
+        end
       end
+    rescue Exception => e
+      puts e
+    end
       client.close
     end
 end

@@ -10,6 +10,7 @@ class Player
     @lives = 5 #Vida
   end
   #--------------------------------------#
+
   def warp(x, y)
     @x, @y = x, y
   end

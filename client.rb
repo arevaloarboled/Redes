@@ -4,20 +4,24 @@ require './libs/Projectile.rb'
 require './libs/Asteroid.rb'
 require 'socket'
 require 'thread'
-
+require 'timeout'
 #........................................#
-$servers=["localhost"]
-
+$servers=["192.168.0.21","192.168.0.19"]
 def recibe(msg)
   k=0
+  tmp=msg
   loop do
+    msg=tmp
     begin
-      server = TCPSocket.open( $servers[0], 9123 )
+      server = TCPSocket.open( $servers[k], 9123 )
       server.puts(msg)
       msg=server.gets.chomp
       server.close
       break
-    rescue Exception 
+    rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+      puts "change"
+      puts e
+      #server.close
       k=k+1
       if k==$servers.count() then
         k=0
@@ -31,11 +35,14 @@ def envia(msg)
   k=0
   loop do
     begin
-      server = TCPSocket.open( $servers[0], 9123 )
+      server = TCPSocket.open( $servers[k], 9123 )
       server.puts(msg)
       server.close
       break
-    rescue Exception 
+    rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+      #server.close
+      puts "change"
+      puts e
       k=k+1
       if k==$servers.count() then
         k=0
@@ -111,6 +118,8 @@ class GameWindow < Gosu::Window
         envia("up")
         #@player.accelerate
       end
+      msg=recibe("update")
+      $ll=msg
       ################--->>>
       #@cooldown += 1 #Para el conteo que vuelve a permitir disparar
       #@player.move
@@ -144,9 +153,9 @@ class GameWindow < Gosu::Window
 
       #unless @player.lives <= 0 #Para que cuando muera no muestre mas en la pantalla
       if @game_in_progress
-        msg=recibe("update")
+        #msg=recibe("update")
         #puts msg
-        l=msg.split('|')
+        l=$ll.split('|')
         i=0
         while i<l.count() do
           if l[i]=="pl"

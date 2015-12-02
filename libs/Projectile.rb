@@ -10,6 +10,7 @@ class Projectile
     @image = Gosu::Image.new('assets/projectile1.png')
   end
   #--------------------------------------#
+ 
   def draw
     @image.draw_rot(@x, @y, 1, @angle)
   end

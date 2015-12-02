@@ -1,7 +1,7 @@
 include Math
 
 class Asteroid
-  attr_accessor :x, :y, :angle, :alive
+  attr_accessor :x, :y, :angle, :alive, :size
   #--------------------------------------#
   def initialize(size)
     @size = size
@@ -11,6 +11,7 @@ class Asteroid
     @speed_modifier = 1
   end
   #--------------------------------------#
+  
   def draw
     @image.draw_rot(@x, @y, 1, @angle)
   end
