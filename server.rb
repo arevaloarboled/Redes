@@ -34,8 +34,8 @@ end
 $IP=myip()
 $socket = TCPServer.open($IP,9123)
 #$socket_ali = TCPServer.open("localhost",9123)
-$servers=["192.168.0.21","192.168.0.19"]
-$dirbroadcast="192.168.0.255"
+$servers=["192.168.250.214","192.168.250.38"]
+$dirbroadcast="192.168.250.255"
 $clients=[]
 $players=[]
 $projectiles=[]
@@ -55,8 +55,11 @@ portconect=Thread.new do
   s = TCPServer.open($IP,9121)
   loop { 
     begin
-      q=s.accept
-      q.close
+      loop { 
+        Thread.start(s.accept) do |q|
+          q.close()
+        end
+      }
     rescue Exception => e
       puts e
     end
@@ -69,8 +72,9 @@ syncro=Thread.new do
       server.bind($IP,9122)
       BasicSocket.do_not_reverse_lookup = true
       msg, addr=server.recvfrom(2048)
-      remote_ip=msg.split("|")[0]
-      msg=msg.split("|")[1]
+      l=msg.split("|")
+      remote_ip=l[0]
+      msg=l[1]
       if !($clients.include?(remote_ip)) and msg=="hola"  and  $c<4 then
         #puts "suave "+msg
         $clients.push(remote_ip)
@@ -100,6 +104,41 @@ syncro=Thread.new do
         end
        end
        #broadcast(remote_ip+"|"+msg)
+      end
+      if remote_ip=="update"
+        $players=[]
+        $asteroids=[]
+        $projectiles=[]
+        i=1
+        while i<l.count
+          if l[i]=="pl"
+            $players.push(Player.new(l[i+1].ord-47))
+            $players[l[i+1].ord-47].x=l[i+2].to_f
+            $players[l[i+1].ord-47].y=l[i+3].to_f
+            $players[l[i+1].ord-47].angle=l[i+4].to_f
+            $players[l[i+1].ord-47].score=l[i+6].to_f
+            $players[l[i+1].ord-47].lives=l[i+5].to_f
+            i=i+7
+            next
+          end
+          if l[i]=="as"
+            $asteroids.push(Asteroid.new("Large"))
+            $asteroids[$asteroids.count-1].x=l[i+1].to_f
+            $asteroids[$asteroids.count-1].y=l[i+2].to_f
+            $asteroids[$asteroids.count-1].angle=l[i+3].to_f
+            i=i+4
+            next
+          end
+          if l[i]=="pr"
+            $projectiles.push(l[i+1].ord-47)
+            $projectiles[$projectiles.count-1].x=l[i+1].to_f
+            $projectiles[$projectiles.count-1].y=l[i+2].to_f
+            $projectiles[$projectiles.count-1].angle=l[i+3].to_f
+            i=i+4
+            next
+          end
+          i+=1
+        end             
       end           
       server.close
     rescue Exception => e
@@ -119,20 +158,29 @@ end
 def deteccion_colisiones
   begin
     $asteroids.each do |asteroid|
-      $players.each do |player|
+      #$players.each do |player|
         $projectiles.each do |projectile|
           if colision?(asteroid, projectile) and $players[projectile.id].lives>0 then
             $players[projectile.id].score += asteroid.points
             projectile.kill
             $asteroids += asteroid.kill
           end
-
-          if colision?(asteroid, player) then
-            #projectile.kill
-            puts "coliii"
-            a=asteroid.kill
-            player.kill
-          end
+        end
+      #end
+    end
+    $asteroids.each do |asteroid|
+      $players.each do |player|
+        if colision?(asteroid, player)
+          player.kill
+          asteroid.kill
+        end
+      end
+    end
+    $players.each do |player|
+      $projectiles.each do |projectile|
+        if colision?(projectile, player) and projectile.id!=player.id
+          player.kill
+          projectile.kill
         end
       end
     end
@@ -180,6 +228,10 @@ tread=Thread.new do
             $asteroids.delete_at(i)
           end 
           i=i+1
+        end
+        if $asteroids.count==0
+          $asteriod_count+=1
+          $asteroids=Asteroid.spawn($asteriod_count)
         end
       rescue Exception => e
         puts "thread error"
@@ -319,9 +371,9 @@ loop do
               msg=""
               begin
                 $players.each{|i| 
-                  if i.lives>0 then
+                  #if i.lives>0 then
                     msg+="pl|"+i.id.to_s+"|"+i.x.to_s+"|"+i.y.to_s+"|"+i.angle.to_s+"|"+i.lives.to_s+"|"+i.score.to_s+"|"
-                  end
+                  #end
                 }
                 #puts msg
                 pl=$projectiles
@@ -332,6 +384,7 @@ loop do
               end
               #puts msg
               #puts msg  
+              #broadcast("update|"+msg)
               client.puts msg
            else
                if msg=="up" then

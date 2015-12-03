@@ -44,8 +44,10 @@ class Player
   #--------------------------------------#
   def kill
 		@lives -= 1
-		alive = false
-		return if lives <= 0
+    if @lives<0
+      @lives=0
+    end
+		@alive = false
     warp(500,350)
 	end
   #--------------------------------------#

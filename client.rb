@@ -11,16 +11,17 @@ require 'timeout'
 #........................................#
 def ping(host)
   begin
-    tim=Timeout.timeout(1) do
+    #tim=Timeout.timeout(10) do
       s = TCPSocket.open(host, 9121)
       s.close
       return true
-    end
-  #rescue Errno::ECONNREFUSED
-  #  return true
-  rescue Errno::ECONNREFUSED,Timeout::Error,Errno::ENETUNREACH, Errno::EHOSTUNREACH, StandardError
+    #end
+  rescue Errno::ECONNREFUSED
+     return true
+  rescue Timeout::Error,Errno::ENETUNREACH, Errno::EHOSTUNREACH, StandardError
     return false
   end
+  #return true
 end
 # def checkup?(host)
 #     check = Net::Ping::External.new(host)
@@ -34,7 +35,7 @@ def myip
     return "ERROR!"
   end
 end
-$servers=["192.168.0.21","192.168.0.19"]
+$servers=["192.168.250.214","192.168.250.38"]
 $k=0
 $IP=myip()
 conexion=Thread.new do
@@ -46,12 +47,12 @@ conexion=Thread.new do
     if ping($servers[i]) then
       if $k!=i
         $k=i
-        puts "CHANGE!"          
+        puts "CHANGE! "+" new server " +$servers[$k]
       end
       i=0        
     else
       i=i+1
-      #puts "search server"
+      puts "search server"
       if i==$servers.count()
         i=0
       end
@@ -63,7 +64,7 @@ def recibe(msg)
   loop do
     msg=tmp
     begin
-      #tim=Timeout.timeout(2) do
+      #tim=Timeout.timeout(15) do
         server = TCPSocket.open( $servers[$k], 9123 )
         server.puts(msg)
         msg=server.gets.chomp
@@ -84,7 +85,7 @@ end
 def envia(msg)
   loop do
     begin
-      #tim=Timeout.timeout(2) do
+      #tim=Timeout.timeout(15) do
         server = TCPSocket.open( $servers[$k], 9123 )
         server.puts(msg)
         server.close
@@ -209,9 +210,9 @@ class GameWindow < Gosu::Window
         i=0
         while i<l.count() do
           if l[i]=="pl"
-            Gosu::Image.new("assets/nave"+(l[i+1].ord-47).to_s+".png").draw_rot(l[i+2].to_f,l[i+3].to_f,1,l[i+4].to_f)
-
-
+            if l[i+5].to_f>0
+              Gosu::Image.new("assets/nave"+(l[i+1].ord-47).to_s+".png").draw_rot(l[i+2].to_f,l[i+3].to_f,1,l[i+4].to_f)
+            end
             if l[i+1].to_f == 0.0
               @font.draw("PUNTAJE:", 10, 10, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
               @font.draw(l[i+6].to_s, 210, 10, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
