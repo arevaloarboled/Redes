@@ -16,16 +16,16 @@ class Player
   end
   #--------------------------------------#
   def turn_left
-    @angle -= 4.5
+    @angle -= 9.5
   end
   #--------------------------------------#
   def turn_right
-    @angle += 4.5
+    @angle += 9.5
   end
   #--------------------------------------#
   def accelerate
-    @vel_x += Gosu::offset_x(@angle, 0.4)
-    @vel_y += Gosu::offset_y(@angle, 0.4)
+    @vel_x += Gosu::offset_x(@angle, 0.9)
+    @vel_y += Gosu::offset_y(@angle, 0.9)
   end
   #--------------------------------------#
   def move

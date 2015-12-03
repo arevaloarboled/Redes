@@ -6,7 +6,7 @@ class Projectile
     @alive = true
     @x, @y = origin_object.x, origin_object.y
     @angle = origin_object.angle
-    @speed_modifier = 7
+    @speed_modifier = 2
     @image = Gosu::Image.new('assets/projectile1.png')
   end
   #--------------------------------------#

@@ -5,55 +5,98 @@ require './libs/Asteroid.rb'
 require 'socket'
 require 'thread'
 require 'timeout'
+# require 'rubygems'
+# require 'net/ping'
+
 #........................................#
-$servers=["192.168.250.39","192.168.250.40"]
+def ping(host)
+  begin
+    tim=Timeout.timeout(1) do
+      s = TCPSocket.open(host, 9121)
+      s.close
+      return true
+    end
+  #rescue Errno::ECONNREFUSED
+  #  return true
+  rescue Errno::ECONNREFUSED,Timeout::Error,Errno::ENETUNREACH, Errno::EHOSTUNREACH, StandardError
+    return false
+  end
+end
+# def checkup?(host)
+#     check = Net::Ping::External.new(host)
+#     check.ping?
+# end
+def myip
+  begin
+    return UDPSocket.open {|s| s.connect("64.233.187.99", 1); s.addr.last}
+  rescue Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH
+    sleep(1)
+    return "ERROR!"
+  end
+end
+$servers=["192.168.0.21","192.168.0.19"]
+$k=0
+$IP=myip()
+conexion=Thread.new do
+  i=0
+  loop do
+    #puts ping($servers[i])
+    #puts $k
+    #puts checkup?($servers[i])
+    if ping($servers[i]) then
+      if $k!=i
+        $k=i
+        puts "CHANGE!"          
+      end
+      i=0        
+    else
+      i=i+1
+      #puts "search server"
+      if i==$servers.count()
+        i=0
+      end
+    end
+  end
+end
 def recibe(msg)
-  k=0
   tmp=msg
   loop do
     msg=tmp
     begin
-      Timeout.timeout(1) do
-        server = TCPSocket.open( $servers[k], 9123 )
+      #tim=Timeout.timeout(2) do
+        server = TCPSocket.open( $servers[$k], 9123 )
         server.puts(msg)
         msg=server.gets.chomp
         server.close
         break
-      end
-    rescue Timeout::Error,Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-      puts "change"
-      if e then 
-        puts e
-      end
-      #server.close
-      k=k+1
-      if k==$servers.count() then
-        k=0
-      end
-    end
+      #end
+    #rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+    rescue Timeout::Error,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH,Exception=>e
+          puts "Error in recibe"
+          if e
+            puts e
+          end
+        end
   end
   return msg
 end
 
 def envia(msg)
-  k=0
   loop do
     begin
-      Timeout.timeout(1) do
-        server = TCPSocket.open( $servers[k], 9123 )
+      #tim=Timeout.timeout(2) do
+        server = TCPSocket.open( $servers[$k], 9123 )
         server.puts(msg)
         server.close
         break
-      end
-    rescue Timeout::Error,Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
-      #server.close
-      puts "change"
-      puts e
-      k=k+1
-      if k==$servers.count() then
-        k=0
-      end
-    end
+      #end
+    #rescue Exception => e#Timeout::Error, Errno::EINVAL, Errno::ECONNRESET, EOFError,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH, Net::HTTPBadResponse, Net::HTTPHeaderSyntaxError, Net::ProtocolError => e
+    rescue Timeout::Error,Errno::ECONNREFUSED, Errno::ETIMEDOUT,Errno::ENETUNREACH,Exception=>e
+          puts "Error in envia"
+          if e
+            puts e
+          end
+        end
   end
 end
 
@@ -159,6 +202,7 @@ class GameWindow < Gosu::Window
 
       #unless @player.lives <= 0 #Para que cuando muera no muestre mas en la pantalla
       if @game_in_progress
+
         #msg=recibe("update")
         #puts msg
         l=$ll.split('|')
@@ -166,7 +210,31 @@ class GameWindow < Gosu::Window
         while i<l.count() do
           if l[i]=="pl"
             Gosu::Image.new("assets/nave"+(l[i+1].ord-47).to_s+".png").draw_rot(l[i+2].to_f,l[i+3].to_f,1,l[i+4].to_f)
-            i=i+5
+
+
+            if l[i+1].to_f == 0.0
+              @font.draw("PUNTAJE:", 10, 10, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
+              @font.draw(l[i+6].to_s, 210, 10, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
+              @font.draw("VIDAS:", 10, 40, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
+              @font.draw(l[i+5].to_s, 150, 40, 50, 1.0, 1.0, Gosu::Color::rgb(255, 255, 255))
+            elsif l[i+1].to_f == 1.0
+              @font.draw("PUNTAJE:", 710, 10, 50, 1.0, 1.0, Gosu::Color::rgb(0, 177, 204))
+              @font.draw(l[i+6].to_s, 910, 10, 50, 1.0, 1.0, Gosu::Color::rgb(0, 177, 204))
+              @font.draw("VIDAS:", 780, 40, 50, 1.0, 1.0, Gosu::Color::rgb(0, 177, 204))
+              @font.draw(l[i+5].to_s, 910, 40, 50, 1.0, 1.0, Gosu::Color::rgb(0, 177, 204))
+            elsif l[i+1].to_f == 2.0
+              @font.draw("PUNTAJE:", 10, 620, 50, 1.0, 1.0, Gosu::Color::rgb(255, 231, 51))
+              @font.draw(l[i+6].to_s, 210, 620, 50, 1.0, 1.0, Gosu::Color::rgb(255, 231, 51))
+              @font.draw("VIDAS:", 10, 650, 50, 1.0, 1.0, Gosu::Color::rgb(255, 231, 51))
+              @font.draw(l[i+5].to_s, 150, 650, 50, 1.0, 1.0, Gosu::Color::rgb(255, 231, 51))
+            else
+              @font.draw("PUNTAJE:", 710, 620, 50, 1.0, 1.0, Gosu::Color::rgb(199, 23, 0))
+              @font.draw(l[i+6].to_s, 910, 620, 50, 1.0, 1.0, Gosu::Color::rgb(199, 23, 0))
+              @font.draw("VIDAS:", 780, 650, 50, 1.0, 1.0, Gosu::Color::rgb(199, 23, 0))
+              @font.draw(l[i+5].to_s, 910, 650, 50, 1.0, 1.0, Gosu::Color::rgb(199, 23, 0))
+            end
+
+            i=i+7
             next
           end
           if l[i]=="as"

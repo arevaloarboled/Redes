@@ -8,7 +8,7 @@ class Asteroid
     @alive = true
     @image = Gosu::Image.new("assets/Asteroid-#{size}.png")
     @x, @y, @angle = rand(1000), rand(350), rand(360)
-    @speed_modifier = 1
+    @speed_modifier = 0.1
   end
   #--------------------------------------#
   
@@ -32,10 +32,10 @@ class Asteroid
   def smash
     asteroids = case @size
     when 'Large'
-        speed = 2
+        speed = 0.12
         2.times.collect{Asteroid.new('Medium')}
       when 'Medium'
-        speed = 2.5
+        speed = 0.14
         2.times.collect{Asteroid.new('Small')}
       else
         []
